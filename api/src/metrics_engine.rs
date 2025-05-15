@@ -1,4 +1,5 @@
-use crate::{GitLabClient, GroupMetrics, TeamMetrics, TimeRange, UserMetrics, UserWorkload};
+use crate::{GitLabClient, GroupMetrics, TeamMetrics, TimeRange, UserMetrics, UserWorkload, Users, User};
+use itertools::Itertools;
 
 pub async fn compute_group_metrics(
     client: &GitLabClient,
@@ -54,5 +55,20 @@ pub async fn compute_user_metrics(
         avg_mr_size: "500 LOC".to_string(),
         time_to_first_review_avg: "2h".to_string(),
         rework_rate: "11%".to_string(),
+    }
+}
+
+pub async fn get_all_users(
+    client: &GitLabClient,
+) -> Users {
+    let usernames = client.get_users().await;
+    let mut u:Vec<User> = Vec::new();
+
+    for username in &usernames {
+        u.push(User {username: username.to_string()});
+    }
+
+    Users {
+        users: u
     }
 }

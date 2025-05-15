@@ -2,6 +2,7 @@ use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde::Deserialize;
 use std::env;
+use itertools::Itertools;
 
 pub struct GitLabClient {
     base_url: String,
@@ -14,6 +15,11 @@ struct Project {
     id: u64,
     name: String,
     archived: bool,
+}
+
+#[derive(Deserialize)]
+struct Users {
+    username: String,
 }
 
 static _DOTENV: Lazy<()> = Lazy::new(|| {
@@ -31,6 +37,19 @@ impl GitLabClient {
             base_url,
             private_token,
             http: Client::new(),
+        }
+    }
+
+    pub async fn get_users(&self) -> Vec<String> {
+        let url = format!("{}/api/v4/users", self.base_url);
+        let response = self.http.get(url).header("PRIVATE-TOKEN", &self.private_token).send().await;
+
+        match response {
+            Ok(resp) => match resp.json::<Vec<Users>>().await {
+                Ok(response) => response.into_iter().map(|p| p.username).collect(),
+                Err(_) => vec![],
+            },
+            Err(_) => vec![],
         }
     }
 

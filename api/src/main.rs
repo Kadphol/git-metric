@@ -10,7 +10,7 @@ use axum::{
     Json, Router,
 };
 use gitlab_client::GitLabClient;
-use metrics_engine::{compute_group_metrics, compute_team_metrics, compute_user_metrics};
+use metrics_engine::{compute_group_metrics, compute_team_metrics, compute_user_metrics, get_all_users};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -20,7 +20,8 @@ async fn main() {
     let app = Router::new()
         .route("/groups/:group_id/metrics", get(get_group_metrics))
         .route("/teams/:team_id/metrics", get(get_team_metrics))
-        .route("/users/:user_id/metrics", get(get_user_metrics));
+        .route("/users/:user_id/metrics", get(get_user_metrics))
+        .route("/users", get(get_users));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on http://{}", addr);
@@ -91,4 +92,20 @@ async fn get_user_metrics(
     let client = GitLabClient::new_from_env();
     let metrics = compute_user_metrics(&client, &user_id, &params).await;
     Json(metrics)
+}
+
+#[derive(Serialize)]
+pub struct Users {
+    pub users: Vec<User>,
+}
+
+#[derive(Serialize)]
+pub struct User {
+    pub username: String,
+}
+
+async fn get_users() -> Json<Users> {
+    let client = GitLabClient::new_from_env();
+    let users = get_all_users(&client).await;
+    Json(users)
 }
